@@ -1,79 +1,50 @@
 import fs from "fs"
 
-const pathToFile = "./src/data/carts.json"
+class CartManager {
+    constructor() {
+        this.ruta = './src/data/carts.json'
+    }
 
-class CartManager{
-    createCart = async (cart) =>{
-        try {
-            let id = 1
-            if(fs.existsSync(pathToFile)){
-                let data = await fs.promises.readFile(pathToFile, "utf-8")
-                let carts = JSON.parse(data)
-                if(carts.length > 0) id = carts[carts.length-1].id+1
-                cart = {
-                    id,
-                    timeStamp: new Date().toLocaleString(),
-                    ...cart
-                }
-                carts.push(cart)
-                await fs.promises.writeFile(pathToFile,JSON.stringify(carts,null,2))
-            }else{
-                cart = {
-                    id,
-                    timeStamp: new Date().toLocaleString(),
-                    ...cart
-                }
-                await fs.promises.writeFile(pathToFile,JSON.stringify([cart],null,2))
-            }
-            return cart
-        } catch (error) {
-            return {error:0, descripcion:"No se puede acceder a la base de datos"}
+    create() {
+        const carts = this.getAll()
+        let newId
+        if (carts.length == 0) {
+            newId = 1
+        } else {
+            newId = carts[carts.length - 1].id + 1
         }
-    }
-    deleteCart = async(id)=>{
-        id = parseInt(id)
-        if(fs.existsSync(pathToFile)){
-            let isFound = false
-            let data = await fs.promises.readFile(pathToFile, "utf-8")
-            let carts = JSON.parse(data)
-            let newCarts = carts.filter(item => item.id !== id)
-            if(carts.length !== newCarts.length) isFound = true
-            if(!isFound) return {error:0, descripcion:"Cart not found"}
-            await fs.promises.writeFile(pathToFile,JSON.stringify(newCarts,null,2))
-            return newCarts
-        }else{
-            return {error:0, descripcion:"No existe la base de datos"}
+        const newCart = { 
+            productos: [],
+            timestamp: Date.now(),
+            id: newId
         }
+        carts.push(newCart)
+        fs.writeFileSync(this.ruta, JSON.stringify(carts, null, 2))
+        return newCart
     }
-    findById = async (id) =>{
-        id = parseInt(id)
-        if(!fs.existsSync(pathToFile)) return{error:0, description:"Error no existe"}
-        let data = await fs.promises.readFile(pathToFile,"utf-8")
-        let carts = JSON.parse(data)
-        let cart = carts.find(item=> item.id === id)
-        if(!cart) return {error:0, description:"cart not found"}
-        return cart
-    }
+
     getAll() {
         try{
             const carts = fs.readFileSync(this.ruta, 'utf-8')
             return JSON.parse(carts) 
         } 
         catch (err) {
-            return [err]
+            return []
         }
     }
-    saveProd(elem,id){
+
+    saveProd(elem, id) {
         const carts = this.getAll()
         const index = carts.findIndex(c => c.id == id)
-        if(index !== -1){
+        if (index !== -1) {
             carts[index].productos.push(elem)
-            fs.writeFileSync(this.ruta, JSON.stringify(carts,null,2))
+            fs.writeFileSync(this.ruta, JSON.stringify(carts, null, 2))
             return carts[index].productos
-        }else{
-            return{error: "carrito no encontrado"}
+        } else {
+            return { error: `carrito no encontrado` }
         }
     }
+
     deleteProd(prodId, cartId) {
         const carts = this.getAll()
         const cartIndex = carts.findIndex(c => c.id == cartId)
@@ -92,6 +63,24 @@ class CartManager{
             }
         } else {
             return { error: `carrito no encontrado` }
+        }
+    }
+
+    getCartById(id) {
+        const carts = this.getAll()
+        const found = carts.find(cart => cart.id == id)
+        return found || { error: `carrito no encontrado` }
+    }
+
+    deleteCartById(id) {
+        const carts = this.getAll()
+        const index = carts.findIndex(cart => cart.id == id)
+        if (index !== -1) {
+            carts.splice(index, 1)
+            fs.writeFileSync(this.ruta, JSON.stringify(carts, null, 2))
+            return carts
+        } else {
+            return { error: `elemento no encontrado` }
         }
     }
 }
